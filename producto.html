@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLIMORE | Productos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+    <main class="page page-products">
+        <header class="hero hero--compact">
+            <img src="images/logo-olimore-estilo-original-compacto-verde.svg" alt="OLIMORE" class="hero__logo hero__logo--small">
+            <h1 id="categoryTitle" class="hero__tagline"></h1>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                        type="search" 
+                        id="categorySearchInput" 
+                        placeholder="Buscar en esta categoría..." 
+                        class="search-input"
+                        aria-label="Buscar productos en esta categoría"
+                    />
+                    <button class="search-clear" id="categorySearchClear" aria-label="Limpiar búsqueda">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="products-wrapper">
+            <button class="back-btn" onclick="window.location.href='index.html'">← Volver</button>
+            <section id="categoryDescription" class="category-description hidden"></section>
+            
+            <section id="productsContainer" class="products-grid" aria-live="polite"></section>
+
+            <section id="emptyState" class="empty-state hidden">
+                <p>No encontramos productos para esta categor&iacute;a. Prob&aacute; otra opci&oacute;n.</p>
+            </section>
+            
+            <div class="scroll-indicator">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+        
+        <section class="price-disclaimer" role="note" aria-label="Aviso de precios y compra mínima">
+            <strong>AVISO:</strong> Los precios pueden estar sujetos a cambios sin previo&nbsp;aviso
+        </section>
+        
+        <section class="min-purchase-notice" role="note" aria-label="Compra mínima">
+            <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+            <strong>Compra mínima:</strong> $15.000 pesos
+        </section>
+
+        <footer class="site-footer">
+            <div class="site-footer__inner">
+                <div class="site-footer__grid">
+                    <div class="site-footer__block">
+                        <img src="images/logo-olimore-estilo-original-compacto-blanco.svg" alt="OLIMORE" class="site-footer__logo">
+                        <p class="site-footer__tag">Distribuidora</p>
+                        <p class="site-footer__subtag">Venta mayorista y minorista</p>
+                        <p class="site-footer__subtag site-footer__subtag--secondary">Tienda de Especias y Aceites</p>
+                    </div>
+                    <div class="site-footer__block">
+                        <div class="footer__social">
+                            <a href="https://www.instagram.com/olimore_bahiablanca/" target="_blank" rel="noopener" aria-label="Instagram" class="footer__icon footer__icon--ig"></a>
+                            <a href="https://wa.me/5492914023498" target="_blank" rel="noopener" aria-label="WhatsApp" class="footer__icon footer__icon--wa"></a>
+                            <a href="https://www.facebook.com/people/Distribuidora-OliMore/100064210142855/" target="_blank" rel="noopener" aria-label="Facebook" class="footer__icon footer__icon--fb"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="site-footer__bar">
+                <p class="footer__copy">&copy; <span id="year"></span> OLIMORE. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+    </main>
+
+    <a href="https://wa.me/5492914023498" class="floating-whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp OLIMORE: +54 9 291 402-3498" title="+54 9 291 402-3498"></a>
+
+    <script src="script.js?v=6"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
+

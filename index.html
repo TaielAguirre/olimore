@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLIMORE | Carta Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+    <main class="page page-home">
+        <header class="hero">
+            <img src="images/logo-olimore-estilo-original-verde.svg?v=3" alt="OLIMORE - Distribuidora, Tienda de Especias y Aceites" class="hero__logo">
+            <p class="hero__slogan">Venta mayorista y minorista</p>
+            <p class="hero__tagline">Seleccioná tu categoría</p>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                        type="search" 
+                        id="searchInput" 
+                        placeholder="Buscar productos..." 
+                        class="search-input"
+                        aria-label="Buscar productos"
+                    />
+                    <button class="search-clear" id="searchClear" aria-label="Limpiar búsqueda">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <section class="category-grid" id="categoryGrid" aria-live="polite"></section>
+        
+        <section id="searchResults" class="search-results hidden" aria-live="polite">
+            <h2 class="search-results__title">Resultados de búsqueda</h2>
+            <section class="min-purchase-notice" role="note" aria-label="Compra mínima">
+                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                <strong>Compra mínima:</strong> $15.000 pesos
+            </section>
+            <div id="searchResultsContainer" class="products-grid"></div>
+            <div id="searchEmptyState" class="empty-state hidden">
+                <p>No encontramos productos que coincidan con tu búsqueda.</p>
+            </div>
+        </section>
+
+        <footer class="site-footer">
+            <div class="site-footer__inner">
+                <div class="site-footer__grid">
+                    <div class="site-footer__block">
+                        <img src="images/logo-olimore-estilo-original-compacto-blanco.svg" alt="OLIMORE" class="site-footer__logo">
+                        <p class="site-footer__tag">Distribuidora</p>
+                        <p class="site-footer__subtag">Venta mayorista y minorista</p>
+                        <p class="site-footer__subtag site-footer__subtag--secondary">Tienda de Especias y Aceites</p>
+                    </div>
+                    <div class="site-footer__block">
+                        <div class="footer__social">
+                            <a href="https://www.instagram.com/olimore_bahiablanca/" target="_blank" rel="noopener" aria-label="Instagram" class="footer__icon footer__icon--ig"></a>
+                            <a href="https://wa.me/5492914023498" target="_blank" rel="noopener" aria-label="WhatsApp" class="footer__icon footer__icon--wa"></a>
+                            <a href="https://www.facebook.com/people/Distribuidora-OliMore/100064210142855/" target="_blank" rel="noopener" aria-label="Facebook" class="footer__icon footer__icon--fb"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="site-footer__bar">
+                <p class="footer__copy">© <span id="year"></span> OLIMORE. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+    </main>
+
+    <a href="https://wa.me/5492914023498" class="floating-whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp OLIMORE" title="Contactar por WhatsApp"></a>
+
+    <script src="script.js?v=6"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        const formatter = new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        
+        // Cargar categorías dinámicamente
+        (function() {
+            const categoryGrid = document.getElementById('categoryGrid');
+            if (!categoryGrid) return;
+            
+            fetch('data/categorias.php', { cache: 'no-store' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error al cargar categorías (${response.status})`);
+                    }
+                    return response.json();
+                })
+                .then(categories => {
+                    if (!Array.isArray(categories) || categories.length === 0) {
+                        const errorMsg = document.createElement('p');
+                        errorMsg.style.cssText = 'text-align:center; padding:40px; color:#666;';
+                        errorMsg.textContent = 'No hay categorías disponibles.';
+                        categoryGrid.appendChild(errorMsg);
+                        return;
+                    }
+                    // Normalizar entrada: puede venir como strings o objetos { name, image }
+                    const normalized = categories.map(c => {
+                        if (typeof c === 'string') return { name: c, image: '', position: 'center' };
+                        return { name: c.name || '', image: c.image || '', position: c.position || 'center' };
+                    }).filter(c => c.name);
+
+                    categoryGrid.innerHTML = '';
+                    normalized.forEach(cat => {
+                        const encoded = encodeURIComponent(cat.name);
+                        const card = document.createElement('a');
+                        card.className = 'category-card' + (cat.image ? ' category-card--with-image' : '');
+                        card.href = `producto.html?categoria=${encoded}`;
+                        
+                        if (cat.image) {
+                            card.style.backgroundImage = `url('${escapeHtml(cat.image)}')`;
+                        }
+                        if (cat.position) {
+                            card.style.backgroundPosition = escapeHtml(cat.position);
+                        }
+                        
+                        const title = document.createElement('span');
+                        title.className = 'category-card__title';
+                        title.textContent = cat.name;
+                        card.appendChild(title);
+                        
+                        categoryGrid.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error cargando categorías:', error);
+                    const errorMsg = document.createElement('p');
+                    errorMsg.style.cssText = 'text-align:center; padding:40px; color:#a12a2a;';
+                    errorMsg.textContent = 'No pudimos cargar las categorías. Volvé a intentar más tarde.';
+                    categoryGrid.appendChild(errorMsg);
+                });
+        })();
+        
+        // Funcionalidad de búsqueda
+        (function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchClear = document.getElementById('searchClear');
+            const searchResults = document.getElementById('searchResults');
+            const searchResultsContainer = document.getElementById('searchResultsContainer');
+            const searchEmptyState = document.getElementById('searchEmptyState');
+            const categoryGrid = document.getElementById('categoryGrid');
+            let allProducts = [];
+            
+            // Verificar que todos los elementos existan
+            if (!searchInput || !searchClear || !searchResults || !searchResultsContainer || !searchEmptyState || !categoryGrid) {
+                console.error('Error: Elementos del buscador no encontrados');
+                return;
+            }
+            
+            // Cargar productos una vez
+            fetch('data/productos.php', { cache: 'no-store' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error al cargar productos (${response.status})`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allProducts = Array.isArray(data) ? data : data?.productos || [];
+                })
+                .catch(error => {
+                    console.error('Error cargando productos:', error);
+                });
+            
+            function renderProductCard(producto) {
+                const card = document.createElement('article');
+                card.className = 'product-card' + (producto.oferta ? ' product-card--offer' : '');
+                
+                const img = document.createElement('img');
+                img.className = 'product-card__image';
+                img.alt = producto.nombre || 'Producto OLIMORE';
+                img.loading = 'lazy';
+                img.src = producto.imagen ? producto.imagen : 'images/productos/placeholder.png';
+                
+                const content = document.createElement('div');
+                content.className = 'product-card__content';
+                
+                const title = document.createElement('h2');
+                title.className = 'product-card__title';
+                title.textContent = producto.nombre || 'Producto';
+                
+                // Solo mostrar descripción si existe y especialmente si hay oferta
+                let description = null;
+                if (producto.descripcion && producto.descripcion.trim() !== '') {
+                    description = document.createElement('p');
+                    description.className = 'product-card__description';
+                    description.textContent = producto.descripcion;
+                }
+                
+                const meta = document.createElement('div');
+                meta.className = 'product-card__meta';
+                
+                const measure = document.createElement('span');
+                measure.className = 'product-card__measure';
+                measure.textContent = producto.medida || '';
+                
+                const priceGroup = document.createElement('div');
+                priceGroup.className = 'product-card__price-group';
+                
+                // Función para detectar si hay cantidad mínima requerida
+                const parseDiscountQuantity = (descripcion) => {
+                    if (!descripcion) return null;
+                    // Detectar "Comprando 15KG", "Comprando 5KG", etc.
+                    const match0 = descripcion.match(/Comprando\s+(\d+(?:[.,]\d+)?)\s*KG/i);
+                    if (match0) return parseFloat(match0[1].replace(',', '.'));
+                    // Detectar "X 6 unidades", "X 6 UNID", "X6 unidades", etc.
+                    const match1 = descripcion.match(/X\s*(\d+)\s*(?:unidades?|UNID)/i);
+                    if (match1) return parseInt(match1[1]);
+                    // Detectar "6 o más", "12 o mas", etc.
+                    const match2 = descripcion.match(/(\d+)\s*o\s*m[áa]s/i);
+                    if (match2) return parseInt(match2[1]);
+                    // Detectar "X 5KG", "X 5 KG", etc.
+                    const match3 = descripcion.match(/X\s*(\d+(?:[.,]\d+)?)\s*KG/i);
+                    if (match3) return parseFloat(match3[1].replace(',', '.'));
+                    // Detectar "Comprando 6 unidades", "Comprando 12 unidades", etc.
+                    const match4 = descripcion.match(/Comprando\s+(\d+)\s+unidades?/i);
+                    if (match4) return parseInt(match4[1]);
+                    // Detectar "Comprando 12 surtidas", "Comprando 6 surtidas", etc.
+                    const match5 = descripcion.match(/Comprando\s+(\d+)\s+surtidas?/i);
+                    if (match5) return parseInt(match5[1]);
+                    return null;
+                };
+                
+                // Verificar si hay cantidad mínima requerida para el descuento
+                const cantidadMinima = producto.descripcion ? parseDiscountQuantity(producto.descripcion) : null;
+                // Solo mostrar precio de oferta tachado si NO hay cantidad mínima requerida
+                // Si hay cantidad mínima, el precio normal NO se tacha, solo se muestra la descripción de la oferta
+                const hasOffer1 = producto.oferta && producto.oferta_precio_1 && !cantidadMinima;
+                const hasOffer2 = producto.oferta && producto.oferta_precio_2 && !cantidadMinima;
+                
+                // Función para detectar unidad automáticamente desde el nombre
+                const detectarUnidad = (nombre) => {
+                    if (!nombre) return '';
+                    const nombreUpper = nombre.toUpperCase();
+                    
+                    // Detectar litros (mejorado para detectar LTS, LT, L)
+                    if (nombreUpper.match(/\d+[.,]?\d*\s*(LTS?|LT|L)\b/)) {
+                        return 'litros';
+                    }
+                    // Detectar CC
+                    if (nombreUpper.match(/\d+\s*CC\b/)) {
+                        return 'cc';
+                    }
+                    // Detectar kilos (si tiene X KG o similar)
+                    if (nombreUpper.match(/X\s*\d+[.,]?\d*\s*KG\b/)) {
+                        return 'kilos';
+                    }
+                    return '';
+                };
+                
+                // Función para extraer cantidad específica del nombre (ej: "4,5LTS" → "4,5L")
+                const extraerCantidadNombre = (nombre) => {
+                    if (!nombre) return null;
+                    const nombreUpper = nombre.toUpperCase();
+                    
+                    // Detectar "X 4,5LTS", "X 4.5LTS", "4,5LTS", "2LTS", "2LT", "2L", etc.
+                    // Patrón mejorado para capturar mejor las cantidades (con o sin espacio)
+                    const matchLts = nombreUpper.match(/(?:X\s*)?(\d+[.,]\d+)\s*(?:LTS?|LT|L)\b|(?:X\s*)?(\d+)\s*(?:LTS?|LT|L)\b|(\d+[.,]\d+)(?:LTS?|LT|L)\b|(\d+)(?:LTS?|LT|L)\b/);
+                    if (matchLts) {
+                        const cantidadStr = (matchLts[1] || matchLts[2] || matchLts[3] || matchLts[4] || '').replace(',', '.');
+                        if (cantidadStr) {
+                            const cantidad = parseFloat(cantidadStr);
+                            if (!isNaN(cantidad)) {
+                                return { cantidad: cantidad, unidad: 'L', tipo: 'litros' };
+                            }
+                        }
+                    }
+                    
+                    // Detectar "500CC", "360CC", "X 500CC", etc. (con o sin espacio)
+                    const matchCC = nombreUpper.match(/(?:X\s*)?(\d+)\s*CC\b|(\d+)CC\b/);
+                    if (matchCC && (matchCC[1] || matchCC[2])) {
+                        const cantidad = parseInt(matchCC[1] || matchCC[2]);
+                        if (!isNaN(cantidad)) {
+                            return { cantidad: cantidad, unidad: 'cc', tipo: 'cc' };
+                        }
+                    }
+                    
+                    return null;
+                };
+                
+                // Obtener unidad del producto o detectarla automáticamente
+                let unidad = producto.unidad || '';
+                if (!unidad && producto.nombre) {
+                    unidad = detectarUnidad(producto.nombre);
+                }
+                
+                // Extraer cantidad específica del nombre
+                const cantidadNombre = extraerCantidadNombre(producto.nombre);
+                
+                // Obtener etiquetas según la unidad
+                const getEtiquetasUnidad = (unidad, cantidadNombre) => {
+                    // Si hay cantidad específica en el nombre, usarla
+                    if (cantidadNombre) {
+                        if (cantidadNombre.tipo === 'litros' || cantidadNombre.tipo === 'cc') {
+                            // Formatear cantidad: si es decimal, usar coma; si es entero, sin decimales
+                            let cantidadStr;
+                            if (cantidadNombre.cantidad % 1 === 0) {
+                                cantidadStr = cantidadNombre.cantidad.toString();
+                            } else {
+                                cantidadStr = cantidadNombre.cantidad.toString().replace('.', ',');
+                            }
+                            return {
+                                precio1: cantidadStr + cantidadNombre.unidad,
+                                precio2: cantidadStr + cantidadNombre.unidad,
+                                boton1: cantidadStr + cantidadNombre.unidad,
+                                boton2: cantidadStr + cantidadNombre.unidad,
+                                variant1: cantidadStr + cantidadNombre.unidad,
+                                variant2: cantidadStr + cantidadNombre.unidad
+                            };
+                        }
+                    }
+                    
+                    // Etiquetas estándar
+                    const etiquetas = {
+                        'gramos': { precio1: '500g', precio2: '1kg', boton1: '500g', boton2: '1kg', variant1: '500g', variant2: '1kg' },
+                        'kilos': { precio1: '500g', precio2: '1kg', boton1: '500g', boton2: '1kg', variant1: '500g', variant2: '1kg' },
+                        'litros': { precio1: '500ml', precio2: '1L', boton1: '500ml', boton2: '1L', variant1: '500ml', variant2: '1L' },
+                        'cc': { precio1: '500cc', precio2: '1L', boton1: '500cc', boton2: '1L', variant1: '500cc', variant2: '1L' }
+                    };
+                    return etiquetas[unidad] || etiquetas['gramos'];
+                };
+                
+                const etiquetas = getEtiquetasUnidad(unidad, cantidadNombre);
+                
+                if (producto.precio_1) {
+                    const price1Container = document.createElement('div');
+                    price1Container.className = 'product-card__price-item';
+                    
+                    const price1Label = document.createElement('span');
+                    price1Label.className = 'product-card__price-label';
+                    price1Label.textContent = etiquetas.precio1;
+                    price1Container.appendChild(price1Label);
+                    
+                    const price1Wrapper = document.createElement('div');
+                    price1Wrapper.className = 'product-card__price-wrapper';
+                    
+                    const price1 = document.createElement('span');
+                    price1.className = 'product-card__price' + (hasOffer1 ? ' product-card__price--old' : '');
+                    price1.textContent = formatter.format(producto.precio_1);
+                    price1Wrapper.appendChild(price1);
+                    
+                    if (hasOffer1) {
+                        const offer1 = document.createElement('span');
+                        offer1.className = 'product-card__price product-card__price--offer';
+                        offer1.textContent = formatter.format(producto.oferta_precio_1);
+                        price1Wrapper.appendChild(offer1);
+                    }
+                    
+                    price1Container.appendChild(price1Wrapper);
+                    priceGroup.appendChild(price1Container);
+                }
+                
+                if (producto.precio_2) {
+                    const price2Container = document.createElement('div');
+                    price2Container.className = 'product-card__price-item';
+                    
+                    const price2Label = document.createElement('span');
+                    price2Label.className = 'product-card__price-label';
+                    price2Label.textContent = etiquetas.precio2;
+                    price2Container.appendChild(price2Label);
+                    
+                    const price2Wrapper = document.createElement('div');
+                    price2Wrapper.className = 'product-card__price-wrapper';
+                    
+                    const price2 = document.createElement('span');
+                    price2.className = 'product-card__price product-card__price--secondary' + (hasOffer2 ? ' product-card__price--old' : '');
+                    price2.textContent = formatter.format(producto.precio_2);
+                    price2Wrapper.appendChild(price2);
+                    
+                    if (hasOffer2) {
+                        const offer2 = document.createElement('span');
+                        offer2.className = 'product-card__price product-card__price--offer';
+                        offer2.textContent = formatter.format(producto.oferta_precio_2);
+                        price2Wrapper.appendChild(offer2);
+                    }
+                    
+                    price2Container.appendChild(price2Wrapper);
+                    priceGroup.appendChild(price2Container);
+                }
+                
+                if (producto.oferta) {
+                    const badge = document.createElement('span');
+                    badge.className = 'product-card__badge';
+                    badge.textContent = 'Oferta';
+                    content.prepend(badge);
+                }
+                
+                meta.appendChild(measure);
+                meta.appendChild(priceGroup);
+                
+                content.appendChild(title);
+                if (description) {
+                    content.appendChild(description);
+                }
+                content.appendChild(meta);
+
+                // Botones agregar al carrito (usar API global expuesta por script.js)
+                if (window.olimCart) {
+                    const addBox = document.createElement('div');
+                    addBox.className = 'add-buttons';
+                    // Usar helper de eventos móviles si está disponible, sino usar evento click normal
+                    const addEvent = (btn, callback) => {
+                        if (window.addMobileFriendlyEventListener) {
+                            window.addMobileFriendlyEventListener(btn, callback);
+                        } else {
+                            btn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                callback(e);
+                            });
+                        }
+                    };
+                    
+                    if (producto.precio_1) {
+                        const b1 = document.createElement('button');
+                        b1.className = 'btn-add';
+                        b1.type = 'button';
+                        b1.setAttribute('aria-label', `Agregar ${etiquetas.boton1} al carrito`);
+                        b1.textContent = `Agregar ${etiquetas.boton1}`;
+                        // Usar precio normal inicialmente (el descuento se aplicará automáticamente en el carrito)
+                        addEvent(b1, () => {
+                            if (window.olimCart) {
+                                window.olimCart.addToCart(producto, etiquetas.variant1, Number(producto.precio_1));
+                            }
+                        });
+                        addBox.appendChild(b1);
+                    }
+                    if (producto.precio_2) {
+                        const b2 = document.createElement('button');
+                        b2.className = 'btn-add';
+                        b2.type = 'button';
+                        b2.setAttribute('aria-label', `Agregar ${etiquetas.boton2} al carrito`);
+                        b2.textContent = `Agregar ${etiquetas.boton2}`;
+                        // Usar precio normal inicialmente (el descuento se aplicará automáticamente en el carrito)
+                        addEvent(b2, () => {
+                            if (window.olimCart) {
+                                window.olimCart.addToCart(producto, etiquetas.variant2, Number(producto.precio_2));
+                            }
+                        });
+                        addBox.appendChild(b2);
+                    }
+                    if (addBox.children.length) content.appendChild(addBox);
+                }
+                
+                card.appendChild(img);
+                card.appendChild(content);
+                
+                return card;
+            }
+            
+            // Diccionario de variantes inteligentes basado en productos y categorías reales
+            const searchVariants = {
+                // Frutos secos
+                'nuez': ['nueces', 'nuez mariposa', 'nuez mariposas', 'nueces mariposa'],
+                'nueces': ['nuez', 'nuez mariposa', 'nuez mariposas'],
+                'almendra': ['almendras', 'almendras peladas', 'almendras x 300gr'],
+                'almendras': ['almendra', 'almendras peladas', 'almendras x 300gr'],
+                'avellana': ['avellanas'],
+                'avellanas': ['avellana'],
+                'caju': ['cajú', 'cajus', 'cajúes', 'anacardo', 'anacardos'],
+                'cajú': ['caju', 'cajus', 'cajúes', 'anacardo', 'anacardos'],
+                'anacardo': ['anacardos', 'caju', 'cajú'],
+                'anacardos': ['anacardo', 'caju', 'cajú'],
+                'frutos secos': ['fruto seco', 'frutoseco', 'frutossecos'],
+                'fruto seco': ['frutos secos', 'frutoseco', 'frutossecos'],
+                
+                // Semillas
+                'semilla': ['semillas'],
+                'semillas': ['semilla'],
+                'chia': ['chía', 'chia'],
+                'chía': ['chia'],
+                'sesamo': ['sésamo', 'sesamo blanco', 'sesamo negro', 'sesamo integral'],
+                'sésamo': ['sesamo', 'sesamo blanco', 'sesamo negro', 'sesamo integral'],
+                'girasol': ['semilla de girasol', 'pipas de girasol'],
+                'lino': ['semilla de lino', 'linaza'],
+                'linaza': ['lino', 'semilla de lino'],
+                'quinoa': ['quinua', 'quinoa blanca'],
+                'quinua': ['quinoa', 'quinoa blanca'],
+                
+                // Harinas
+                'harina': ['harinas'],
+                'harinas': ['harina'],
+                'harina de almendra': ['harina almendras', 'almendra harina'],
+                'harina de coco': ['harina coco', 'coco harina'],
+                'harina de avena': ['harina avena', 'avena harina'],
+                'harina de garbanzo': ['harina garbanzos', 'garbanzo harina'],
+                'harina de arroz': ['harina arroz', 'arroz harina'],
+                
+                // Legumbres
+                'legumbre': ['legumbres'],
+                'legumbres': ['legumbre'],
+                'garbanzo': ['garbanzos', 'garbanzo sin tacc'],
+                'garbanzos': ['garbanzo', 'garbanzo sin tacc'],
+                'lenteja': ['lentejas', 'lenteja sin tacc'],
+                'lentejas': ['lenteja', 'lenteja sin tacc'],
+                'poroto': ['porotos', 'poroto negro', 'poroto alubia', 'poroto pallar'],
+                'porotos': ['poroto', 'poroto negro', 'poroto alubia', 'poroto pallar'],
+                
+                // Especias y condimentos
+                'especia': ['especias', 'especias y condimentos'],
+                'especias': ['especia', 'especias y condimentos'],
+                'condimento': ['condimentos', 'especias y condimentos'],
+                'condimentos': ['condimento', 'especias y condimentos'],
+                'pimenton': ['pimentón', 'pimenton ahumado', 'pimentón ahumado'],
+                'pimentón': ['pimenton', 'pimenton ahumado', 'pimentón ahumado'],
+                'nuez moscada': ['nuez moscada molida'],
+                
+                // Integrales
+                'integral': ['integrales', 'chorizo integral', 'pan integral', 'harina integral'],
+                'integrales': ['integral'],
+                'avena': ['avena instantanea', 'avena inst', 'avena instantánea'],
+                'avena instantanea': ['avena', 'avena inst', 'avena instantánea'],
+                
+                // Aceites
+                'aceite': ['aceites'],
+                'aceites': ['aceite'],
+                'aceite de oliva': ['aceite oliva', 'oliva virgen', 'aceite oliva virgen'],
+                'aceite oliva': ['aceite de oliva', 'oliva virgen'],
+                'aceite de girasol': ['aceite girasol'],
+                
+                // Té y hierbas
+                'te': ['té', 'te y hierbas', 'te verde', 'infusiones'],
+                'té': ['te', 'te y hierbas', 'te verde', 'infusiones'],
+                'hierba': ['hierbas', 'te y hierbas'],
+                'hierbas': ['hierba', 'te y hierbas'],
+                'infusion': ['infusiones', 'infusiones para te y mate'],
+                'infusiones': ['infusion', 'infusiones para te y mate'],
+                'melisa': ['toronjil'],
+                'manzanilla': ['camomila'],
+                'camomila': ['manzanilla'],
+                
+                // Deshidratados
+                'deshidratado': ['deshidratados', 'dishecado', 'disecado'],
+                'deshidratados': ['deshidratado', 'dishecado', 'disecado'],
+                'dishecado': ['deshidratado', 'deshidratados', 'disecado'],
+                'disecado': ['deshidratado', 'deshidratados', 'dishecado'],
+                
+                // Sin TACC
+                'sin tacc': ['sin tacc', 'sin gluten', 'gluten free', 'productos sin tacc'],
+                'sin gluten': ['sin tacc', 'gluten free'],
+                'gluten free': ['sin tacc', 'sin gluten'],
+                
+                // Cereales
+                'cereal': ['cereales', 'cereales x kg'],
+                'cereales': ['cereal', 'cereales x kg'],
+                
+                // Otros
+                'coco': ['coco rallado', 'coco deshidratado'],
+                'arandano': ['arándano', 'arandanos', 'arándanos secos'],
+                'arándano': ['arandano', 'arandanos', 'arándanos secos'],
+                'ciruela': ['ciruelas', 'ciruela sin carozo'],
+                'ciruelas': ['ciruela', 'ciruela sin carozo'],
+                'datile': ['dátiles', 'datiles'],
+                'dátiles': ['datile', 'datiles'],
+                'datiles': ['datile', 'dátiles'],
+                'higo': ['higos', 'higos dishecado'],
+                'higos': ['higo', 'higos dishecado'],
+                'banana': ['bananas', 'banana dishecada', 'chips banana'],
+                'bananas': ['banana', 'banana dishecada', 'chips banana'],
+            };
+            
+            // Función inteligente de normalización para búsquedas
+            function normalizeSearchText(text) {
+                if (!text) return '';
+                let normalized = text.toLowerCase().trim();
+                
+                // Eliminar acentos
+                normalized = normalized
+                    .replace(/[áàäâ]/g, 'a')
+                    .replace(/[éèëê]/g, 'e')
+                    .replace(/[íìïî]/g, 'i')
+                    .replace(/[óòöô]/g, 'o')
+                    .replace(/[úùüû]/g, 'u')
+                    .replace(/[ñ]/g, 'n')
+                    .replace(/[ç]/g, 'c');
+                
+                return normalized;
+            }
+            
+            // Función para generar variaciones de búsqueda (plurales/singulares + diccionario)
+            function generateSearchVariations(query) {
+                const normalized = normalizeSearchText(query);
+                const variations = [normalized];
+                
+                // Buscar en el diccionario de variantes
+                const dictKey = Object.keys(searchVariants).find(key => 
+                    normalizeSearchText(key) === normalized || 
+                    normalized.includes(normalizeSearchText(key)) ||
+                    normalizeSearchText(key).includes(normalized)
+                );
+                
+                if (dictKey) {
+                    // Agregar todas las variantes del diccionario
+                    searchVariants[dictKey].forEach(variant => {
+                        variations.push(normalizeSearchText(variant));
+                    });
+                }
+                
+                // También buscar variantes inversas (si alguien busca una variante, encontrar la palabra principal)
+                for (const [key, variants] of Object.entries(searchVariants)) {
+                    if (variants.some(v => normalizeSearchText(v) === normalized)) {
+                        variations.push(normalizeSearchText(key));
+                        variants.forEach(v => variations.push(normalizeSearchText(v)));
+                    }
+                }
+                
+                // Variaciones gramaticales comunes
+                // Si termina en 's', agregar versión sin 's' (singular)
+                if (normalized.endsWith('s') && normalized.length > 1) {
+                    variations.push(normalized.slice(0, -1));
+                }
+                // Si no termina en 's', agregar versión con 's' (plural)
+                else if (normalized.length > 0) {
+                    variations.push(normalized + 's');
+                }
+                
+                // Variaciones comunes en español
+                // -es plural (ej: nuez -> nueces)
+                if (normalized.endsWith('z')) {
+                    variations.push(normalized.slice(0, -1) + 'ces');
+                }
+                if (normalized.endsWith('ces')) {
+                    variations.push(normalized.slice(0, -3) + 'z');
+                }
+                
+                // -es plural común (ej: paquete -> paquetes)
+                if (normalized.endsWith('e') && normalized.length > 1) {
+                    variations.push(normalized + 's');
+                }
+                
+                // Eliminar duplicados
+                return [...new Set(variations)];
+            }
+            
+            // Función para verificar si un texto coincide con la búsqueda (inteligente)
+            function matchesSearch(text, query) {
+                if (!text || !query) return false;
+                
+                const normalizedText = normalizeSearchText(text);
+                const searchVariations = generateSearchVariations(query);
+                
+                // Verificar si alguna variación de búsqueda está en el texto
+                return searchVariations.some(variation => normalizedText.includes(variation));
+            }
+            
+            function performSearch(query) {
+                const q = query.trim();
+                
+                if (q === '') {
+                    searchResults.classList.add('hidden');
+                    if (categoryGrid) {
+                        categoryGrid.style.display = 'grid';
+                    }
+                    searchClear.classList.remove('active');
+                    return;
+                }
+                
+                // Verificar que los productos estén cargados
+                if (allProducts.length === 0) {
+                    console.warn('Los productos aún no se han cargado');
+                    return;
+                }
+                
+                searchClear.classList.add('active');
+                if (categoryGrid) {
+                    categoryGrid.style.display = 'none';
+                }
+                searchResults.classList.remove('hidden');
+                searchResultsContainer.innerHTML = '';
+                searchEmptyState.classList.add('hidden');
+                
+                const filtered = allProducts.filter(producto => {
+                    const nombre = producto.nombre || '';
+                    const descripcion = producto.descripcion || '';
+                    const categoria = producto.categoria || '';
+                    return matchesSearch(nombre, q) || matchesSearch(descripcion, q) || matchesSearch(categoria, q);
+                });
+                
+                if (filtered.length === 0) {
+                    searchEmptyState.classList.remove('hidden');
+                    return;
+                }
+                
+                filtered.forEach((producto, index) => {
+                    const card = renderProductCard(producto);
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    searchResultsContainer.appendChild(card);
+                    
+                    setTimeout(() => {
+                        card.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 50);
+                });
+            }
+            
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(e.target.value);
+                }, 300);
+            });
+            
+            searchClear.addEventListener('click', () => {
+                searchInput.value = '';
+                performSearch('');
+                searchInput.focus();
+            });
+            
+            // Buscar al presionar Enter
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    performSearch(e.target.value);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
